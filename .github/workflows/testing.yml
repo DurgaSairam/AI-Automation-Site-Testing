@@ -1,0 +1,91 @@
+name: Automated Testing After Deployment
+
+on:
+  # Trigger after deployment
+  deployment_status:
+  
+  # Or trigger manually
+  workflow_dispatch:
+  
+  # Or trigger on push to main (after deployment)
+  push:
+    branches:
+      - main
+      - production
+
+jobs:
+  automated-testing:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: |
+          npm install
+          npx playwright install chromium
+      
+      - name: Wait for deployment
+        run: |
+          echo "Waiting 30 seconds for deployment to stabilize..."
+          sleep 30
+      
+      - name: Run automated tests
+        run: npm run test:ci
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: |
+            test-report.html
+            test-results.json
+            screenshots/
+          retention-days: 30
+      
+      - name: Upload to GitHub Pages (optional)
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_branch: gh-pages
+          keep_files: true
+          destination_dir: test-reports/${{ github.run_number }}
+      
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+            const passRate = ((results.summary.passed / results.summary.total) * 100).toFixed(1);
+            const status = passRate > 80 ? '✅' : '⚠️';
+            
+            const body = `## ${status} Automated Test Results
+            
+            - **Total Pages Tested:** ${results.summary.total}
+            - **Passed:** ${results.summary.passed}
+            - **Warnings:** ${results.summary.warnings}
+            - **Failed:** ${results.summary.failed}
+            - **Pass Rate:** ${passRate}%
+            
+            [View Full Report](https://your-github-username.github.io/your-repo/test-reports/${context.runNumber}/test-report.html)`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
