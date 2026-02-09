@@ -1,0 +1,20 @@
+{
+  "name": "website-auto-test",
+  "version": "1.0.0",
+  "description": "Automated testing suite for fantasyworldtoys.com",
+  "main": "auto-test-suite.js",
+  "scripts": {
+    "test": "node auto-test-suite.js",
+    "test:ci": "node ci-integration.js",
+    "test:staging": "TEST_URL=https://mcstaging.fantasyworldtoys.com node auto-test-suite.js",
+    "test:production": "TEST_URL=https://fantasyworldtoys.com node auto-test-suite.js",
+    "compare": "node compare-results.js",
+    "webhook": "node webhook-listener.js"
+  },
+  "keywords": ["testing", "automation", "playwright", "ai"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}
