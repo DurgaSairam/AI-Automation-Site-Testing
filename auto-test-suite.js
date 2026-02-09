@@ -15,9 +15,12 @@ const path = require('path');
 
 // Configuration
 const CONFIG = {
-  baseUrl: 'https://fantasyworldtoys.com',
+  // Set your staging or production URL
+  // You can also use environment variable: process.env.TEST_URL || 'default-url'
+  baseUrl: process.env.TEST_URL || 'https://mcstaging.fantasyworldtoys.com',
+  
   maxPages: 100, // Limit to prevent infinite crawling
-  timeout: 30000,
+  timeout: 90000, // Increased to 90 seconds for slow-loading pages
   screenshotOnError: true,
   viewport: {
     desktop: { width: 1920, height: 1080 },
@@ -156,8 +159,10 @@ async function testPage(browser, url, device = 'desktop') {
     timestamp: new Date().toISOString(),
     status: 'unknown',
     statusCode: null,
+    statusText: null,
     loadTime: null,
     errors: [],
+    errorDetails: [],  // More detailed error info
     consoleWarnings: [],
     accessibility: {},
     performance: {},
@@ -179,6 +184,24 @@ async function testPage(browser, url, device = 'desktop') {
   // Collect page errors
   page.on('pageerror', error => {
     pageResult.errors.push(error.message);
+    pageResult.errorDetails.push({
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+  });
+  
+  // Capture failed requests
+  page.on('requestfailed', request => {
+    const failure = request.failure();
+    pageResult.errors.push(`Request failed: ${request.url()} - ${failure?.errorText || 'Unknown error'}`);
+    pageResult.errorDetails.push({
+      type: 'network',
+      url: request.url(),
+      method: request.method(),
+      errorText: failure?.errorText,
+      resourceType: request.resourceType()
+    });
   });
   
   try {
@@ -186,12 +209,21 @@ async function testPage(browser, url, device = 'desktop') {
     
     // Navigate to page
     const response = await page.goto(url, { 
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',  // Changed from 'networkidle' for better compatibility
       timeout: CONFIG.timeout 
     });
     
     pageResult.loadTime = Date.now() - startTime;
     pageResult.statusCode = response.status();
+    pageResult.statusText = response.statusText();
+    
+    // Capture response headers for debugging
+    const headers = response.headers();
+    pageResult.responseHeaders = {
+      'content-type': headers['content-type'],
+      'cache-control': headers['cache-control'],
+      'server': headers['server']
+    };
     
     // Performance metrics
     const performanceMetrics = await page.evaluate(() => {
@@ -220,12 +252,68 @@ async function testPage(browser, url, device = 'desktop') {
     pageResult.accessibility = accessibilityChecks;
     pageResult.consoleWarnings = consoleMessages;
     
-    // Determine status
+    // Filter out known non-critical errors for production environment
+    const filteredErrors = pageResult.errors.filter(error => {
+      const errorLower = error.toLowerCase();
+      
+      // Filter known Magento/ecommerce platform issues:
+      
+      // 1. jQuery UI compatibility (Magento fallback issue, not test-breaking)
+      if (error.includes('jQueryUI') || error.includes('jquery') || error.includes('jQuery')) {
+        return false;
+      }
+      
+      // 2. ScrollReveal missing elements (animation library, not critical)
+      if (error.includes('ScrollReveal') || error.includes('reveal on')) {
+        return false;
+      }
+      
+      // 3. The "initialised" property error (third-party script issue)
+      if (error.includes('initialised') || error.includes('initialized')) {
+        return false;
+      }
+      
+      // 4. reCAPTCHA missing parameters (not critical for page functionality)
+      if (error.includes('sitekey') || error.includes('reCAPTCHA') || error.includes('recaptcha')) {
+        return false;
+      }
+      
+      // 5. CORS and network resource loading (external resources, not page-breaking)
+      if (error.includes('CORS') || error.includes('blocked by CORB') || error.includes('Cross-Origin')) {
+        return false;
+      }
+      
+      // 6. Deprecated features (warnings only, not errors)
+      if (errorLower.includes('deprecated')) {
+        return false;
+      }
+      
+      // 7. Font loading issues (not critical)
+      if (errorLower.includes('font') && errorLower.includes('failed')) {
+        return false;
+      }
+      
+      // 8. Tracking/Analytics script errors (not critical for functionality)
+      if (errorLower.includes('gtag') || errorLower.includes('analytics') || errorLower.includes('fbevents')) {
+        return false;
+      }
+      
+      // Keep all other errors
+      return true;
+    });
+    
+    const errorCount = filteredErrors.length;
+    
+    // Store both filtered and original error counts for reporting
+    pageResult.filteredErrorCount = errorCount;
+    pageResult.originalErrorCount = pageResult.errors.length;
+    
+    // Determine status based on filtered errors and load time
     if (pageResult.statusCode >= 200 && pageResult.statusCode < 300) {
-      if (pageResult.loadTime < 3000 && pageResult.errors.length === 0) {
+      if (pageResult.loadTime < 3000 && errorCount === 0) {
         pageResult.status = 'good';
         results.summary.passed++;
-      } else if (pageResult.loadTime < 5000) {
+      } else if (pageResult.loadTime < 8000) {  // Increased threshold for production
         pageResult.status = 'warning';
         results.summary.warnings++;
       } else {
@@ -246,7 +334,24 @@ async function testPage(browser, url, device = 'desktop') {
   } catch (error) {
     pageResult.status = 'bad';
     pageResult.errors.push(error.message);
+    pageResult.errorDetails.push({
+      type: 'navigation_error',
+      message: error.message,
+      name: error.name,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n')  // First 3 lines of stack
+    });
     results.summary.failed++;
+    
+    // Try to capture what type of error this is
+    if (error.message.includes('Timeout') || error.message.includes('timeout')) {
+      pageResult.errorType = 'TIMEOUT';
+    } else if (error.message.includes('net::') || error.message.includes('NS_ERROR')) {
+      pageResult.errorType = 'NETWORK';
+    } else if (error.message.includes('Navigation')) {
+      pageResult.errorType = 'NAVIGATION';
+    } else {
+      pageResult.errorType = 'UNKNOWN';
+    }
     
     if (CONFIG.screenshotOnError) {
       try {

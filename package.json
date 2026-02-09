@@ -5,7 +5,16 @@
   "main": "auto-test-suite.js",
   "scripts": {
     "test": "node auto-test-suite.js",
-    "test:ci": "node ci-integration.js"
+    "test:ci": "node ci-integration.js",
+    "test:staging": "TEST_URL=https://mcstaging.fantasyworldtoys.com node auto-test-suite.js",
+    "test:production": "TEST_URL=https://fantasyworldtoys.com node auto-test-suite.js",
+    "test:functional": "node functional-test-suite.js",
+    "test:functional:staging": "TEST_URL=https://mcstaging.fantasyworldtoys.com node functional-test-suite.js",
+    "test:functional:production": "TEST_URL=https://fantasyworldtoys.com node functional-test-suite.js",
+    "test:full": "npm run test:functional && npm run analyze",
+    "compare": "node compare-results.js",
+    "webhook": "node webhook-listener.js",
+    "analyze": "node analyze-errors.js"
   },
   "keywords": ["testing", "automation", "playwright", "ai"],
   "author": "",

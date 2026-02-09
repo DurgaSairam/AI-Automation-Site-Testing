@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-02-09T11:19:17.457Z",
+  "summary": {
+    "totalPages": 680,
+    "passed": 0,
+    "warnings": 159,
+    "failed": 521,
+    "passRate": "0.00%"
+  },
+  "loadTimeStats": {
+    "average": 6696,
+    "min": 3022,
+    "max": 16855
+  },
+  "statusCodes": {
+    "200": 680
+  },
+  "topErrors": [
+    {
+      "type": "Unknown Error",
+      "count": 1029,
+      "percentage": "151.32%",
+      "example": {
+        "error": "Cannot read properties of undefined (reading 'initialised')",
+        "url": "https://fantasyworldtoys.com",
+        "statusCode": 200
+      }
+    },
+    {
+      "type": "Missing required parameters",
+      "count": 2,
+      "percentage": "0.29%",
+      "example": {
+        "error": "Missing required parameters: sitekey",
+        "url": "https://fantasyworldtoys.com/m01-jft17.html",
+        "statusCode": 200
+      }
+    }
+  ],
+  "failurePatterns": {
+    "brand": 130,
+    "girls-world": 53,
+    "outdoor-sports": 50,
+    "the-edge": 48,
+    "essentialsworld": 46,
+    "early-years": 45,
+    "lego-world": 42,
+    "boys-world": 19,
+    "online-display-categories": 16,
+    "checkout": 2
+  },
+  "recommendations": [
+    "⚠️  Average load time is very high (>5s). Server optimization needed.",
+    "❌ Over 50% failure rate - there may be a systematic issue."
+  ]
+}
