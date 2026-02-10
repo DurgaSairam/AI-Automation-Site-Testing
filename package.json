@@ -1,22 +1,15 @@
 {
-  "name": "website-auto-test",
-  "version": "1.0.0",
-  "description": "Automated testing suite for fantasyworldtoys.com",
-  "main": "auto-test-suite.js",
+  "name": "fwt-automated-testing",
+  "version": "2.0.0",
+  "description": "Complete automated testing suite for Fantasy World Toys",
+  "main": "test-suite.js",
   "scripts": {
-    "test": "node auto-test-suite.js",
-    "test:ci": "node ci-integration.js",
-    "test:staging": "TEST_URL=https://mcstaging.fantasyworldtoys.com node auto-test-suite.js",
-    "test:production": "TEST_URL=https://fantasyworldtoys.com node auto-test-suite.js",
-    "test:functional": "node functional-test-suite.js",
-    "test:functional:staging": "TEST_URL=https://mcstaging.fantasyworldtoys.com node functional-test-suite.js",
-    "test:functional:production": "TEST_URL=https://fantasyworldtoys.com node functional-test-suite.js",
-    "test:full": "npm run test:functional && npm run analyze",
-    "compare": "node compare-results.js",
-    "webhook": "node webhook-listener.js",
-    "analyze": "node analyze-errors.js"
+    "test":         "node test-suite.js",
+    "test:prod":    "TEST_URL=https://fantasyworldtoys.com node test-suite.js",
+    "test:staging": "TEST_URL=https://mcstaging.fantasyworldtoys.com node test-suite.js",
+    "report":       "start reports/latest.html || open reports/latest.html || xdg-open reports/latest.html"
   },
-  "keywords": ["testing", "automation", "playwright", "ai"],
+  "keywords": ["testing", "automation", "playwright", "ecommerce", "magento"],
   "author": "",
   "license": "MIT",
   "dependencies": {
