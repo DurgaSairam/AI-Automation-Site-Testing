@@ -1,18 +1,19 @@
 {
-  "name": "fwt-automated-testing",
-  "version": "2.0.0",
-  "description": "Complete automated testing suite for Fantasy World Toys",
-  "main": "test-suite.js",
+  "name": "fwt-test-suite",
+  "version": "4.0.0",
+  "description": "Fantasy World Toys — Full Site Automated Test Suite",
   "scripts": {
-    "test":         "node test-suite.js",
-    "test:prod":    "TEST_URL=https://fantasyworldtoys.com node test-suite.js",
-    "test:staging": "TEST_URL=https://mcstaging.fantasyworldtoys.com node test-suite.js",
-    "report":       "start reports/latest.html || open reports/latest.html || xdg-open reports/latest.html"
+    "test":          "node test-suite.js",
+    "test:staging":  "TEST_URL=https://mcstaging.fantasyworldtoys.com node test-suite.js",
+    "test:prod":     "TEST_URL=https://www.fantasyworldtoys.com node test-suite.js",
+    "test:smoke":    "SMOKE=1 node test-suite.js",
+    "report":        "node -e \"const {execSync}=require('child_process');const o=require('path').join('reports','latest.html');try{execSync('start '+o)}catch{try{execSync('open '+o)}catch{execSync('xdg-open '+o)}}\"",
+    "setup":         "npx playwright install chromium"
   },
-  "keywords": ["testing", "automation", "playwright", "ecommerce", "magento"],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "playwright": "^1.40.0"
+    "playwright": "^1.41.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
